@@ -1,0 +1,119 @@
+"""
+Temperature Monitor and Alarm Checker
+-------------------------------------
+Reads 5 machine temperature readings, then prints the highest, lowest
+and average, and warns if any reading is above the safe limit.
+
+MY TWIST:
+  1. A text bar chart so you can SEE the readings at a glance.
+  2. A "rising trend" early warning: if the temperature goes up 3 times
+     in a row, the program warns you BEFORE the limit is reached.
+"""
+
+NUM_READINGS = 5          # how many readings we collect
+DEFAULT_LIMIT = 80.0      # safe limit in degrees C (used if user presses Enter)
+
+
+def get_number(prompt):
+    """Keep asking until the user types a valid number (float)."""
+    while True:
+        text = input(prompt).strip()
+        try:
+            return float(text)          # convert the text to a decimal number
+        except ValueError:
+            print("  Invalid input. Please type a number, e.g. 72.5")
+
+
+def get_safe_limit():
+    """Ask for the safe limit. Pressing Enter uses the default."""
+    while True:
+        text = input(f"Enter safe limit in °C (press Enter for {DEFAULT_LIMIT}): ").strip()
+        if text == "":
+            return DEFAULT_LIMIT
+        try:
+            limit = float(text)
+        except ValueError:
+            print("  Invalid input. Please type a number.")
+            continue
+        if limit <= 0:
+            print("  The safe limit must be greater than 0.")
+        else:
+            return limit
+
+
+def collect_readings():
+    """Collect NUM_READINGS temperatures and store them in a list."""
+    readings = []                                   # empty list to store readings
+    for i in range(1, NUM_READINGS + 1):            # loop 5 times
+        value = get_number(f"Reading {i} (°C): ")
+        readings.append(value)                      # add to the list
+    return readings
+
+
+def show_bar_chart(readings, limit):
+    """TWIST 1: print a simple bar chart. Each '#' is 2 degrees."""
+    print("\nBar chart (each # = 2°C):")
+    for i, temp in enumerate(readings, start=1):
+        bars = "#" * max(0, int(temp // 2))         # no negative bar lengths
+        flag = "  <-- OVER LIMIT" if temp > limit else ""
+        print(f"  {i}: {bars} {temp:.1f}{flag}")
+
+
+def check_rising_trend(readings):
+    """TWIST 2: return True if temperature rose 3 times in a row."""
+    rises = 0                                       # count of consecutive rises
+    for i in range(1, len(readings)):
+        if readings[i] > readings[i - 1]:
+            rises += 1
+            if rises >= 3:
+                return True
+        else:
+            rises = 0                               # streak broken, start again
+    return False
+
+
+def analyse(readings, limit):
+    """Print highest, lowest, average and any warnings."""
+    highest = max(readings)
+    lowest = min(readings)
+    average = sum(readings) / len(readings)
+
+    print("\n----- RESULTS -----")
+    print(f"Readings : {readings}")
+    print(f"Highest  : {highest:.1f} °C")
+    print(f"Lowest   : {lowest:.1f} °C")
+    print(f"Average  : {average:.1f} °C")
+    print(f"Limit    : {limit:.1f} °C")
+
+    show_bar_chart(readings, limit)
+
+    print("\n----- STATUS -----")
+    # Count how many readings are over the safe limit
+    over = [t for t in readings if t > limit]
+    if len(over) > 0:
+        print(f"WARNING: {len(over)} reading(s) above the safe limit! Shut down or inspect the machine.")
+    elif highest >= 0.9 * limit:
+        print("CAUTION: Highest reading is within 10% of the limit.")
+    else:
+        print("OK: All readings are within the safe range.")
+
+    if check_rising_trend(readings):
+        print("TREND ALERT: Temperature rose 3 times in a row. The machine may be overheating.")
+
+
+def main():
+    """Main program: repeat until the user chooses to quit."""
+    print("=== Temperature Monitor and Alarm Checker ===")
+    while True:
+        limit = get_safe_limit()
+        print(f"\nEnter {NUM_READINGS} temperature readings.")
+        readings = collect_readings()
+        analyse(readings, limit)
+
+        again = input("\nCheck another machine? (y/n): ").strip().lower()
+        if again != "y":
+            print("Goodbye! Stay safe.")
+            break
+
+
+main()
